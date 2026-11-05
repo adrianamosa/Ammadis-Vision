@@ -1,0 +1,109 @@
+# Ammadis Vision edge box.
+# Frigate is the default vision engine and a replaceable dependency.
+# The edge service never receives face embeddings, names, or snapshots.
+
+name: ammadis-vision
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    restart: unless-stopped
+    command: mosquitto -c /mosquitto/config/mosquitto.conf
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    ports:
+      - "1883:1883"
+    healthcheck:
+      test: ["CMD", "mosquitto_pub", "-h", "localhost", "-t", "ammadis/health", "-m", "1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 3s
+
+  frigate:
+    image: ghcr.io/blakeblackshear/frigate:0.16.2
+    restart: unless-stopped
+    stop_grace_period: 30s
+    shm_size: "256mb"
+    volumes:
+      - ./config/frigate:/config
+      - frigate-media:/media/frigate
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 134217728
+    ports:
+      # UI y API con login. El puerto interno 5000 (sin auth) no se publica.
+      - "8971:8971"
+    environment:
+      TZ: America/Los_Angeles
+      FRIGATE_RTSP_USER: ${FRIGATE_RTSP_USER:-nvr}
+      FRIGATE_RTSP_PASSWORD: ${FRIGATE_RTSP_PASSWORD:-change-me}
+      FRIGATE_NVR_HOST: ${FRIGATE_NVR_HOST:-192.168.50.10}
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    # Coral USB o GPU: descomentar y cambiar detectors en config/frigate/config.yml.
+    # devices:
+    #   - /dev/bus/usb:/dev/bus/usb
+    #   - /dev/dri:/dev/dri
+
+  edge:
+    build: ./services/edge
+    restart: unless-stopped
+    ports:
+      - "8088:8080"
+    volumes:
+      - ./config/sites/gaucho-grill-temecula/site.yaml:/config/site.yaml:ro
+    environment:
+      TZ: America/Los_Angeles
+      AMMADIS_SITE_CONFIG: /config/site.yaml
+      AMMADIS_WEBHOOK_URL: ${AMMADIS_WEBHOOK_URL:-http://cloud-stub:8080/webhooks/ammadis}
+      AMMADIS_MQTT_HOST: ${AMMADIS_MQTT_HOST:-mosquitto}
+      AMMADIS_MQTT_PORT: ${AMMADIS_MQTT_PORT:-1883}
+      AMMADIS_FRIGATE_API_URL: ${AMMADIS_FRIGATE_API_URL:-http://frigate:5000}
+      AMMADIS_ALLOW_INJECT: ${AMMADIS_ALLOW_INJECT:-true}
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      cloud-stub:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+  cloud-stub:
+    build: ./services/cloud-stub
+    restart: unless-stopped
+    ports:
+      - "8090:8080"
+    volumes:
+      - cloud-data:/data
+    environment:
+      TZ: America/Los_Angeles
+      CLOUD_STUB_DB: /data/events.db
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+
+volumes:
+  frigate-media:
+  cloud-data:
