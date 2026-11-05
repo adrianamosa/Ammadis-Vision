@@ -1,0 +1,22 @@
+{
+  "type": "update",
+  "before": {
+    "id": "demo-track-dining-1",
+    "camera": "cam_dining",
+    "label": "person",
+    "score": 0.9,
+    "current_zones": ["dining"],
+    "false_positive": false,
+    "frame_time": 1762340008.0
+  },
+  "after": {
+    "id": "demo-track-dining-1",
+    "camera": "cam_dining",
+    "label": "person",
+    "score": 0.9,
+    "current_zones": [],
+    "false_positive": false,
+    "frame_time": 1762340010.0,
+    "sub_label": null
+  }
+}

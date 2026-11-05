@@ -1,0 +1,152 @@
+# Frigate 0.16 — motor de visión reemplazable de Ammadis Vision.
+# Detección de persona en el substream del NVR TVT. Sin reconocimiento facial,
+# sin LPR y sin embeddings. Los polígonos de abajo cubren casi todo el cuadro
+# a propósito: redibujarlos en la UI de Frigate cuando haya imagen real.
+#
+# RTSP típico TVT (canal 1-based, substream):
+#   rtsp://USUARIO:CLAVE@IP:554/chID=1&streamType=sub&linkType=tcp
+# Algunos firmware usan el substream como /live/ch00_1 (canal 0-based, índice 1).
+# Confirmar el path en la web del NVR. No commitear la clave real.
+#
+# version evita que Frigate 0.16 reescriba este archivo al arrancar.
+# No agregar `objects.genai`: 0.16.2 lo rechaza. La descripción de objetos
+# queda apagada por defecto.
+
+version: 0.16-0
+
+mqtt:
+  enabled: true
+  host: mosquitto
+  port: 1883
+  topic_prefix: frigate
+
+auth:
+  enabled: true
+
+detectors:
+  cpu:
+    type: cpu
+
+detect:
+  enabled: true
+  width: 640
+  height: 360
+  fps: 5
+
+objects:
+  track:
+    - person
+  filters:
+    person:
+      min_score: 0.5
+      threshold: 0.7
+
+face_recognition:
+  enabled: false
+
+lpr:
+  enabled: false
+
+semantic_search:
+  enabled: false
+
+record:
+  enabled: false
+
+snapshots:
+  enabled: false
+
+birdseye:
+  enabled: false
+
+ffmpeg:
+  input_args: preset-rtsp-generic
+
+cameras:
+  cam_entrance:
+    enabled: true
+    ffmpeg:
+      inputs:
+        - path: "rtsp://{FRIGATE_RTSP_USER}:{FRIGATE_RTSP_PASSWORD}@{FRIGATE_NVR_HOST}:554/chID=1&streamType=sub&linkType=tcp"
+          roles:
+            - detect
+    detect:
+      enabled: true
+      width: 640
+      height: 360
+      fps: 5
+    zones:
+      entrance:
+        friendly_name: Entrada
+        coordinates: 0.05,0.05,0.95,0.05,0.95,0.95,0.05,0.95
+        inertia: 3
+        objects:
+          - person
+    mqtt:
+      enabled: false
+
+  cam_dining:
+    enabled: true
+    ffmpeg:
+      inputs:
+        - path: "rtsp://{FRIGATE_RTSP_USER}:{FRIGATE_RTSP_PASSWORD}@{FRIGATE_NVR_HOST}:554/chID=2&streamType=sub&linkType=tcp"
+          roles:
+            - detect
+    detect:
+      enabled: true
+      width: 640
+      height: 360
+      fps: 5
+    zones:
+      dining:
+        friendly_name: Comedor
+        coordinates: 0.05,0.05,0.95,0.05,0.95,0.95,0.05,0.95
+        inertia: 3
+        objects:
+          - person
+    mqtt:
+      enabled: false
+
+  cam_bar:
+    enabled: true
+    ffmpeg:
+      inputs:
+        - path: "rtsp://{FRIGATE_RTSP_USER}:{FRIGATE_RTSP_PASSWORD}@{FRIGATE_NVR_HOST}:554/chID=3&streamType=sub&linkType=tcp"
+          roles:
+            - detect
+    detect:
+      enabled: true
+      width: 640
+      height: 360
+      fps: 5
+    zones:
+      bar:
+        friendly_name: Barra
+        coordinates: 0.05,0.05,0.95,0.05,0.95,0.95,0.05,0.95
+        inertia: 3
+        objects:
+          - person
+    mqtt:
+      enabled: false
+
+  cam_kitchen:
+    enabled: true
+    ffmpeg:
+      inputs:
+        - path: "rtsp://{FRIGATE_RTSP_USER}:{FRIGATE_RTSP_PASSWORD}@{FRIGATE_NVR_HOST}:554/chID=4&streamType=sub&linkType=tcp"
+          roles:
+            - detect
+    detect:
+      enabled: true
+      width: 640
+      height: 360
+      fps: 5
+    zones:
+      kitchen:
+        friendly_name: Cocina
+        coordinates: 0.05,0.05,0.95,0.05,0.95,0.95,0.05,0.95
+        inertia: 3
+        objects:
+          - person
+    mqtt:
+      enabled: false

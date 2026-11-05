@@ -1,0 +1,61 @@
+# Gaucho Grill Temecula — primer sitio piloto.
+# URLs RTSP de ejemplo. No hay credenciales reales en este repo.
+# Las zonas de Frigate (polígonos) se dibujan en la UI; los nombres deben
+# coincidir con engine_zones en config/sites/gaucho-grill-temecula/site.yaml.
+
+site:
+  id: gaucho-grill-temecula
+  name: Gaucho Grill Temecula
+  timezone: America/Los_Angeles
+
+# `frigate` es el motor por defecto y se puede reemplazar.
+# El plano de control solo consume TrackUpdate (persona/objeto).
+vision:
+  engine: frigate
+  mqtt:
+    host: mosquitto
+    port: 1883
+    topic: frigate/events
+  http:
+    # API interna sin auth, solo en la red de Docker. No publicar el puerto 5000.
+    base_url: http://frigate:5000
+    # Si MQTT cae, se consulta /api/events. Es un respaldo degradado:
+    # esas zonas son acumuladas, no la posición en vivo.
+    fallback_poll_seconds: 5
+    probe_seconds: 15
+
+webhook:
+  url: http://cloud-stub:8080/webhooks/ammadis
+  timeout_seconds: 5
+  retries: 3
+
+debounce:
+  # Segundos continuos en la zona antes de person_entered_zone.
+  enter_seconds: 2
+  # Segundos fuera de la zona antes de person_left_zone (oclusiones breves).
+  leave_seconds: 5
+  # 0 = no expirar a quien está sentado. Se cierra el track cuando Frigate
+  # publica el fin. Un timeout corto genera salidas falsas en el comedor.
+  track_timeout_seconds: 0
+
+# Solo persona/objeto. face, identity y sub_label están prohibidos.
+labels:
+  - person
+
+zones:
+  - id: entrance
+    name: Entrada
+    cameras: [cam_entrance]
+    engine_zones: [entrance]
+  - id: dining
+    name: Comedor
+    cameras: [cam_dining]
+    engine_zones: [dining]
+  - id: bar
+    name: Barra
+    cameras: [cam_bar]
+    engine_zones: [bar]
+  - id: kitchen
+    name: Cocina
+    cameras: [cam_kitchen]
+    engine_zones: [kitchen]

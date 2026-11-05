@@ -1,0 +1,17 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+*.log
+
+# Runtime de Frigate (no commitear la base local ni secretos de la UI)
+config/frigate/*
+!config/frigate/config.yml
+data/
+
+# Medios y colas locales
+frigate-media/
+**/*.sqlite
+**/*.sqlite3
